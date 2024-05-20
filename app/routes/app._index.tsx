@@ -9,9 +9,12 @@ import {
   BlockStack,
   Select,
   DataTable,
+  Button,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -83,7 +86,10 @@ function formatDate(dateString: string) {
 }
 
 export default function Index() {
-  const { customerDetails } = useLoaderData<any>();
+  const { customerDetails: initialCustomerDetails } = useLoaderData<any>();
+  const [customerDetails, setCustomerDetails] = useState(
+    initialCustomerDetails,
+  );
 
   const options = customerDetails.map((customer: any) => ({
     label: `${customer.firstName} ${customer.lastName}`,
@@ -126,6 +132,49 @@ export default function Index() {
   useEffect(() => {
     setSelectedOrder(selectedCustomerDetails?.orders[0]);
   }, [selectedCustomerDetails]);
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+
+    // Add customer details
+    if (selectedCustomerDetails) {
+      doc.text(
+        `Customer: ${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName}`,
+        10,
+        10,
+      );
+      doc.text(`Email: ${selectedCustomerDetails.email}`, 10, 20);
+      doc.text(`Phone: ${selectedCustomerDetails.phone}`, 10, 30);
+    }
+
+    // Add order details
+    if (selectedOrder) {
+      doc.text(`Order ID: ${selectedOrder.orderId}`, 10, 40);
+      doc.text(`Date: ${formatDate(selectedOrder.createdAt)}`, 10, 50);
+
+      // Add line items
+      const lineItems = selectedOrder.lineItems.map((item: any) => [
+        item.title,
+        item.quantity,
+        item.price,
+      ]);
+      autoTable(doc, {
+        head: [["Title", "Quantity", "Price"]],
+        body: lineItems,
+        startY: 60,
+      });
+    }
+
+    // Format the createdAt date for the filename
+    const formattedDate = formatDate(selectedOrder.createdAt).replace(
+      /[:\s]/g,
+      "-",
+    );
+
+    doc.save(
+      `${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName} ${formattedDate}.pdf`,
+    );
+  };
 
   return (
     <Page>
@@ -174,16 +223,29 @@ export default function Index() {
           </Layout.Section>
         </Layout>
         {selectedOrder && (
-          <Card>
-            <DataTable
-              columnContentTypes={["text", "numeric", "numeric"]}
-              headings={["Title", "Quantity", "Price"]}
-              rows={selectedOrder.lineItems.map((item: any) =>
-                Object.values(item),
-              )}
-            />
-          </Card>
+          <>
+            <Card>
+              <DataTable
+                columnContentTypes={["text", "numeric", "numeric"]}
+                headings={["Title", "Quantity", "Price"]}
+                rows={selectedOrder.lineItems.map((item: any) =>
+                  Object.values(item),
+                )}
+              />
+            </Card>
+          </>
         )}
+        <BlockStack gap="500" inlineAlign="center">
+          <Button
+            variant="primary"
+            tone="critical"
+            size="large"
+            textAlign="center"
+            onClick={generatePDF}
+          >
+            Generate PDF
+          </Button>
+        </BlockStack>
       </BlockStack>
     </Page>
   );

@@ -3,7 +3,7 @@
 client_id = "e1483d1e4c943f6cb70d93b042e4865b"
 name = "whishlist-creator"
 handle = "whishlist-creator"
-application_url = "https://hp-gold-hb-supervision.trycloudflare.com"
+application_url = "https://prominent-neighborhood-stickers-reply.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,write_draft_orders,write_products"
 
 [auth]
 redirect_urls = [
-  "https://hp-gold-hb-supervision.trycloudflare.com/auth/callback",
-  "https://hp-gold-hb-supervision.trycloudflare.com/auth/shopify/callback",
-  "https://hp-gold-hb-supervision.trycloudflare.com/api/auth/callback"
+  "https://prominent-neighborhood-stickers-reply.trycloudflare.com/auth/callback",
+  "https://prominent-neighborhood-stickers-reply.trycloudflare.com/auth/shopify/callback",
+  "https://prominent-neighborhood-stickers-reply.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
