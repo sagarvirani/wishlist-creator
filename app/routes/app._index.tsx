@@ -2,7 +2,14 @@ import { useEffect, useState, useCallback } from "react";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Select } from "@shopify/polaris";
+import {
+  Page,
+  Layout,
+  Card,
+  BlockStack,
+  Select,
+  DataTable,
+} from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 
@@ -22,29 +29,61 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const draftOrders = await response.json();
 
-  // Extract customer details
-  const customerDetails = draftOrders.draft_orders
-    .map((order: any) => {
-      const customer = order.customer;
-      if (customer) {
-        return {
-          id: customer.id.toString(), // Convert ID to string for consistency
+  const groupedCustomerDetails: { [key: string]: any } = {};
+
+  draftOrders.draft_orders.forEach((order: any) => {
+    const customer = order.customer;
+    if (customer) {
+      const customerId = customer.id.toString();
+      if (!groupedCustomerDetails[customerId]) {
+        groupedCustomerDetails[customerId] = {
+          id: customerId,
           firstName: customer.first_name,
           lastName: customer.last_name,
           email: customer.email,
           phone: customer.phone,
+          orders: [],
         };
       }
-      return undefined;
-    })
-    .filter((customer: any) => customer !== undefined);
+      groupedCustomerDetails[customerId].orders.push({
+        orderId: order.id,
+        createdAt: order.created_at,
+        lineItems: order.line_items.map((item: any) => ({
+          title: item.title,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      });
+    }
+  });
+
+  const customerDetails = Object.values(groupedCustomerDetails);
 
   return json({ customerDetails });
 };
 
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  };
+  const formatter = new Intl.DateTimeFormat("en-GB", dateOptions);
+  const formattedDate = formatter.format(date);
+
+  // Separate date and time
+  const [datePart, timePart] = formattedDate.split(", ");
+  return `${datePart} (${timePart} IST)`;
+}
+
 export default function Index() {
   const { customerDetails } = useLoaderData<any>();
-  //console.log(customerDetails);
 
   const options = customerDetails.map((customer: any) => ({
     label: `${customer.firstName} ${customer.lastName}`,
@@ -59,18 +98,34 @@ export default function Index() {
     setSelectedCustomer(value);
   }, []);
 
+  const selectedCustomerDetails = customerDetails.find(
+    (customer: any) => customer.id === selectedCustomer,
+  );
+
+  const [selectedOrder, setSelectedOrder] = useState<any>(
+    selectedCustomerDetails?.orders[0],
+  );
+
+  const handleOrderChange = useCallback(
+    (value: any) => {
+      const selectedOrderId = value.toString();
+      const newSelectedOrder = selectedCustomerDetails?.orders.find(
+        (order: any) => order.orderId.toString() === selectedOrderId,
+      );
+      setSelectedOrder(newSelectedOrder);
+    },
+    [selectedCustomerDetails],
+  );
+
   useEffect(() => {
     if (options.length > 0 && !selectedCustomer) {
       setSelectedCustomer(options[0].value);
     }
   }, [options]);
 
-  const selectedCustomerDetails = customerDetails.find(
-    (customer: any) => customer.id === selectedCustomer,
-  );
-
-  //console.log("Selected customer ID:", selectedCustomer);
-  //console.log("Selected customer details:", selectedCustomerDetails);
+  useEffect(() => {
+    setSelectedOrder(selectedCustomerDetails?.orders[0]);
+  }, [selectedCustomerDetails]);
 
   return (
     <Page>
@@ -87,9 +142,25 @@ export default function Index() {
                     onChange={handleCustomerChange}
                     value={selectedCustomer}
                   />
+                  {selectedCustomerDetails && (
+                    <Select
+                      label="Select Order"
+                      options={selectedCustomerDetails.orders.map(
+                        (order: any) => ({
+                          label: `${formatDate(order.createdAt)}`,
+                          value: order.orderId,
+                        }),
+                      )}
+                      onChange={handleOrderChange}
+                      value={selectedOrder?.orderId}
+                    />
+                  )}
                 </BlockStack>
-                {selectedCustomerDetails && (
+                {selectedCustomerDetails && selectedOrder && (
                   <div>
+                    <p>
+                      <strong>Order Id:</strong> {selectedOrder.orderId}
+                    </p>
                     <p>
                       <strong>Email:</strong> {selectedCustomerDetails.email}
                     </p>
@@ -102,6 +173,17 @@ export default function Index() {
             </Card>
           </Layout.Section>
         </Layout>
+        {selectedOrder && (
+          <Card>
+            <DataTable
+              columnContentTypes={["text", "numeric", "numeric"]}
+              headings={["Title", "Quantity", "Price"]}
+              rows={selectedOrder.lineItems.map((item: any) =>
+                Object.values(item),
+              )}
+            />
+          </Card>
+        )}
       </BlockStack>
     </Page>
   );
