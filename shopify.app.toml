@@ -3,7 +3,7 @@
 client_id = "e1483d1e4c943f6cb70d93b042e4865b"
 name = "whishlist-creator"
 handle = "whishlist-creator"
-application_url = "https://prominent-neighborhood-stickers-reply.trycloudflare.com"
+application_url = "https://replacement-int-ralph-reflections.trycloudflare.com"
 embedded = true
 
 [build]
@@ -13,13 +13,13 @@ include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,write_draft_orders,write_products"
+scopes = "read_customers,read_draft_orders,read_products,write_draft_orders,write_products"
 
 [auth]
 redirect_urls = [
-  "https://prominent-neighborhood-stickers-reply.trycloudflare.com/auth/callback",
-  "https://prominent-neighborhood-stickers-reply.trycloudflare.com/auth/shopify/callback",
-  "https://prominent-neighborhood-stickers-reply.trycloudflare.com/api/auth/callback"
+  "https://replacement-int-ralph-reflections.trycloudflare.com/auth/callback",
+  "https://replacement-int-ralph-reflections.trycloudflare.com/auth/shopify/callback",
+  "https://replacement-int-ralph-reflections.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
