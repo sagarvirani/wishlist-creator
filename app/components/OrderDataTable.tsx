@@ -29,6 +29,7 @@ export type OrderDataTableProps = {
       lineItems: LineItem[];
     }>
   >;
+  setOrderModified: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function OrderDataTable({
@@ -36,13 +37,12 @@ export default function OrderDataTable({
   quantities,
   setQuantities,
   setSelectedOrder,
+  setOrderModified,
 }: OrderDataTableProps) {
   // Function to handle quantity change
   const handleQuantityChange = (productId: string, value: string) => {
     const parsedValue = parseInt(value, 10);
-    console.log("parsed value=", parsedValue);
     if (!isNaN(parsedValue) && parsedValue > 0) {
-
       // Update quantities
       setQuantities((prevQuantities: any) => ({
         ...prevQuantities,
@@ -58,6 +58,9 @@ export default function OrderDataTable({
             : item,
         ),
       }));
+
+      // Mark the order as modified
+      setOrderModified(true);
     }
   };
 
@@ -71,6 +74,9 @@ export default function OrderDataTable({
       ...prevSelectedOrder,
       lineItems: updatedLineItems,
     }));
+
+    // Mark the order as modified
+    setOrderModified(true);
   };
 
   return (
@@ -178,7 +184,7 @@ export default function OrderDataTable({
               0,
             )
             .toFixed(2), // Total final price
-            "",
+          "",
         ]}
         showTotalsInFooter
       />

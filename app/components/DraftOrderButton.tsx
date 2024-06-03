@@ -3,11 +3,15 @@ import { Button } from "@shopify/polaris";
 export type DraftOrderButtonProps = {
   selectedOrder: any;
   quantities: { [key: string]: number };
+  isDisabled: boolean;
+  setOrderModified: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function DraftOrderButton({
   selectedOrder,
   quantities,
+  isDisabled,
+  setOrderModified,
 }: DraftOrderButtonProps) {
   const saveDraftOrder = async () => {
     try {
@@ -20,7 +24,6 @@ export default function DraftOrderButton({
       const updatedData = {
         line_items: updatedLineItems,
       };
-      console.log('updated data to be send to resource route=', updatedData);
 
       const response = await fetch("/api/updateDraftOrder", {
         method: "POST",
@@ -33,18 +36,14 @@ export default function DraftOrderButton({
         }),
       });
 
-      console.log('res=', response);
-
       const result = await response.json();
 
       if (!response.ok) {
         throw new Error(result.error || "Failed to update draft order");
       }
-
-      // Display success message or handle success state
+      setOrderModified(false);
       shopify.toast.show("Draft order updated successfully");
     } catch (error: any) {
-      // Display error message or handle error state
       shopify.toast.show(error.message || "Failed to update draft order");
     }
   };
@@ -55,6 +54,7 @@ export default function DraftOrderButton({
       size="large"
       textAlign="center"
       onClick={saveDraftOrder}
+      disabled={isDisabled}
     >
       Save Draft Order
     </Button>

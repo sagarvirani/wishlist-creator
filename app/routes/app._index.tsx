@@ -10,9 +10,8 @@ import DraftOrderButton from "~/components/DraftOrderButton";
 import SelectCustomerData from "~/components/SelectCustomerData";
 import OrderDataTable from "~/components/OrderDataTable";
 
-
 const encodeGlobalId = (type: string, id: any) => {
-  return String(`gid://shopify/${type}/${id}`);
+  return `gid://shopify/${type}/${id}`;
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -21,6 +20,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const draftOrder = await admin.rest.resources.DraftOrder.all({
     session: session,
   });
+
+  draftOrder.data.reverse();
 
   const groupedCustomerDetails: { [key: string]: any } = {};
 
@@ -180,7 +181,7 @@ export default function Index() {
   const [customerDetails, setCustomerDetails] = useState(
     initialCustomerDetails,
   );
-  const [selectedCustomer, setSelectedCustomer] = useState<string>(
+  const [selectedCustomer, setSelectedCustomer] = useState(
     initialCustomerDetails.length > 0 ? initialCustomerDetails[0].id : "",
   );
 
@@ -203,6 +204,7 @@ export default function Index() {
       return acc;
     }, {}) || {},
   );
+  const [orderModified, setOrderModified] = useState(false);
 
   useEffect(() => {
     if (options.length > 0 && !selectedCustomer) {
@@ -238,6 +240,7 @@ export default function Index() {
                   selectedOrder={selectedOrder}
                   setSelectedCustomer={setSelectedCustomer}
                   setSelectedOrder={setSelectedOrder}
+                  setOrderModified={setOrderModified}
                 />
                 {selectedCustomerDetails && selectedOrder && (
                   <div>
@@ -271,6 +274,8 @@ export default function Index() {
               <DraftOrderButton
                 selectedOrder={selectedOrder}
                 quantities={quantities}
+                isDisabled={!orderModified}
+                setOrderModified={setOrderModified}
               />
             </div>
             <OrderDataTable
@@ -278,6 +283,7 @@ export default function Index() {
               quantities={quantities}
               setQuantities={setQuantities}
               setSelectedOrder={setSelectedOrder}
+              setOrderModified={setOrderModified}
             />
           </>
         )}

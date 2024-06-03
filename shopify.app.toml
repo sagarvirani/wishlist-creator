@@ -3,7 +3,7 @@
 client_id = "e1483d1e4c943f6cb70d93b042e4865b"
 name = "whishlist-creator"
 handle = "whishlist-creator"
-application_url = "https://thorough-post-poor-planner.trycloudflare.com"
+application_url = "https://advantages-clinic-accepts-heritage.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_draft_orders,read_products,write_draft_orders,writ
 
 [auth]
 redirect_urls = [
-  "https://thorough-post-poor-planner.trycloudflare.com/auth/callback",
-  "https://thorough-post-poor-planner.trycloudflare.com/auth/shopify/callback",
-  "https://thorough-post-poor-planner.trycloudflare.com/api/auth/callback"
+  "https://advantages-clinic-accepts-heritage.trycloudflare.com/auth/callback",
+  "https://advantages-clinic-accepts-heritage.trycloudflare.com/auth/shopify/callback",
+  "https://advantages-clinic-accepts-heritage.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

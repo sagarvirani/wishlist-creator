@@ -8,6 +8,7 @@ export type SelectDataProps = {
   selectedOrder: any;
   setSelectedCustomer: React.Dispatch<React.SetStateAction<string>>;
   setSelectedOrder: React.Dispatch<React.SetStateAction<any>>;
+  setOrderModified: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function SelectData({
@@ -17,13 +18,16 @@ export default function SelectData({
   selectedOrder,
   setSelectedCustomer,
   setSelectedOrder,
+  setOrderModified,
 }: SelectDataProps) {
   // Function to handle customer change
   const handleCustomerChange = useCallback(
     (value: string) => {
       setSelectedCustomer(value);
+      setOrderModified(false);
     },
-    [setSelectedCustomer],
+    
+    [setOrderModified, setSelectedCustomer],
   );
 
   // Function to handle order change
@@ -34,8 +38,9 @@ export default function SelectData({
         (order: any) => order.orderId.toString() === selectedOrderId,
       );
       setSelectedOrder(newSelectedOrder);
+      setOrderModified(false);
     },
-    [selectedCustomerDetails, setSelectedOrder],
+    [selectedCustomerDetails?.orders, setOrderModified, setSelectedOrder],
   );
 
   function formatDate(dateString: string) {
