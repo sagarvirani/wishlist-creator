@@ -28,6 +28,7 @@ const groupCustomerDetails = (draftOrders: any) => {
   const groupedCustomerDetails: { [key: string]: any } = {};
 
   draftOrders.forEach((order: any) => {
+   
     const customer = order.customer;
     if (customer) {
       const customerId = customer.id.toString();
@@ -38,6 +39,7 @@ const groupCustomerDetails = (draftOrders: any) => {
           lastName: customer.last_name,
           email: customer.email,
           phone: customer.phone,
+          // address: customer.billing_address || 'gggggg667',
           orders: [],
         };
       }
@@ -205,6 +207,7 @@ export default function Index() {
   const [selectedCustomer, setSelectedCustomer] = useState(
     initialCustomerDetails.length > 0 ? initialCustomerDetails[0].id : "",
   );
+  console.log('cust details=', customerDetails);
 
   const options = customerDetails.map((customer: any) => ({
     label: `${customer.firstName} ${customer.lastName}`,
