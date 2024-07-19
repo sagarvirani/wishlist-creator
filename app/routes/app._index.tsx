@@ -9,23 +9,25 @@ import PDFButton from "~/components/PDFButton";
 import DraftOrderButton from "~/components/DraftOrderButton";
 import SelectCustomerData from "~/components/SelectCustomerData";
 import OrderDataTable from "~/components/OrderDataTable";
+import FindProducts from "~/components/FindProducts";
 
 const encodeGlobalId = (type: string, id: any) => {
   return `gid://shopify/${type}/${id}`;
 };
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
-
+const fetchDraftOrders = async (admin: any, session: any) => {
   const draftOrder = await admin.rest.resources.DraftOrder.all({
     session: session,
   });
 
   draftOrder.data.reverse();
+  return draftOrder.data;
+};
 
+const groupCustomerDetails = (draftOrders: any) => {
   const groupedCustomerDetails: { [key: string]: any } = {};
 
-  draftOrder.data.forEach((order: any) => {
+  draftOrders.forEach((order: any) => {
     const customer = order.customer;
     if (customer) {
       const customerId = customer.id.toString();
@@ -79,6 +81,75 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
   });
 
+  return groupedCustomerDetails;
+};
+
+const fetchProductImages = async (admin: any, productIds: string[]) => {
+  const response = await admin.graphql(
+    `#graphql
+      query GetProductImages($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on Product {
+            id
+            images(first: 1) {
+              edges {
+                node {
+                  url
+                }
+              }
+            }
+          }
+        }
+      }
+    `,
+    { variables: { ids: productIds } },
+  );
+
+  const productData = await response.json();
+  const productImages: { [key: string]: string } = {};
+  productData.data.nodes.forEach((product: any) => {
+    if (product && product.images.edges.length > 0) {
+      productImages[product.id] = product.images.edges[0].node.url;
+    }
+  });
+
+  return productImages;
+};
+
+const fetchVariantImages = async (admin: any, variantIds: string[]) => {
+  const response = await admin.graphql(
+    `#graphql
+      query GetVariantImages($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on ProductVariant {
+            id
+            image {
+              url
+            }
+          }
+        }
+      }
+    `,
+    { variables: { ids: variantIds } },
+  );
+
+  const variantData = await response.json();
+  const variantImages: { [key: string]: string } = {};
+  variantData.data.nodes.forEach((variant: any) => {
+    if (variant && variant.image) {
+      variantImages[variant.id] = variant.image.url;
+    }
+  });
+
+  return variantImages;
+};
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { admin, session } = await authenticate.admin(request);
+
+  const draftOrders = await fetchDraftOrders(admin, session);
+  const groupedCustomerDetails = groupCustomerDetails(draftOrders);
+
   const productIds = Array.from(
     new Set(
       Object.values(groupedCustomerDetails)
@@ -107,58 +178,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     ),
   );
 
-  const productResponse = await admin.graphql(
-    `#graphql
-      query GetProductImages($ids: [ID!]!) {
-        nodes(ids: $ids) {
-          ... on Product {
-            id
-            images(first: 1) {
-              edges {
-                node {
-                  url
-                }
-              }
-            }
-          }
-        }
-      }
-    `,
-    { variables: { ids: productIds } },
-  );
-
-  const variantResponse = await admin.graphql(
-    `#graphql
-      query GetVariantImages($ids: [ID!]!) {
-        nodes(ids: $ids) {
-          ... on ProductVariant {
-            id
-            image {
-              url
-            }
-          }
-        }
-      }
-    `,
-    { variables: { ids: variantIds } },
-  );
-
-  const productData = await productResponse.json();
-  const variantData = await variantResponse.json();
-
-  const productImages: { [key: string]: string } = {};
-  productData.data.nodes.forEach((product: any) => {
-    if (product && product.images.edges.length > 0) {
-      productImages[product.id] = product.images.edges[0].node.url;
-    }
-  });
-
-  const variantImages: { [key: string]: string } = {};
-  variantData.data.nodes.forEach((variant: any) => {
-    if (variant && variant.image) {
-      variantImages[variant.id] = variant.image.url;
-    }
-  });
+  const productImages = await fetchProductImages(admin, productIds);
+  const variantImages = await fetchVariantImages(admin, variantIds);
 
   Object.values(groupedCustomerDetails).forEach((customer: any) => {
     customer.orders.forEach((order: any) => {
@@ -204,13 +225,14 @@ export default function Index() {
       return acc;
     }, {}) || {},
   );
+
   const [orderModified, setOrderModified] = useState(false);
 
   useEffect(() => {
     if (options.length > 0 && !selectedCustomer) {
       setSelectedCustomer(options[0].value);
     }
-  }, [options]);
+  }, [options, selectedCustomer]);
 
   useEffect(() => {
     setSelectedOrder(selectedCustomerDetails?.orders[0]);
@@ -228,7 +250,9 @@ export default function Index() {
   return (
     <Page>
       <TitleBar title="Wishlist App" />
+
       <BlockStack gap="500">
+        <FindProducts />
         <Layout>
           <Layout.Section>
             <Card>
@@ -242,28 +266,19 @@ export default function Index() {
                   setSelectedOrder={setSelectedOrder}
                   setOrderModified={setOrderModified}
                 />
-                {selectedCustomerDetails && selectedOrder && (
-                  <div>
-                    <p>
-                      <strong>Order Id:</strong> {selectedOrder.orderId}
-                    </p>
-                    <p>
-                      <strong>Order Name:</strong> {selectedOrder.orderName}
-                    </p>
-                    <p>
-                      <strong>Email:</strong> {selectedCustomerDetails.email}
-                    </p>
-                    <p>
-                      <strong>Phone:</strong> {selectedCustomerDetails.phone}
-                    </p>
-                  </div>
-                )}
               </BlockStack>
             </Card>
           </Layout.Section>
         </Layout>
         {selectedOrder && (
           <>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                width: "100%",
+              }}
+            ></div>
             <div
               style={{
                 display: "flex",

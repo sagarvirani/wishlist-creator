@@ -41,7 +41,7 @@ export const action: ActionFunction = async ({ request }) => {
     await draft_order.save({
       update: true,
     });
-    console.log("draft order=", draft_order);
+    //console.log("draft order=", draft_order);
 
     return json(draft_order, { status: 200 });
   } catch (error: any) {

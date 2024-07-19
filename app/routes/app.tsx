@@ -1,4 +1,4 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
@@ -14,6 +14,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
   return json({ apiKey: process.env.SHOPIFY_API_KEY || "" });
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const payload = await request.json();
+  console.log("Webhook payload at app:", payload);
+
+  // Process the webhook payload here
+
+  return json({ success: true });
 };
 
 export default function App() {

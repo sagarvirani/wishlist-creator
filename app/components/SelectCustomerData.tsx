@@ -11,7 +11,7 @@ export type SelectDataProps = {
   setOrderModified: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-export default function SelectData({
+export default function SelectCustomerData({
   options,
   selectedCustomer,
   selectedCustomerDetails,
@@ -63,24 +63,44 @@ export default function SelectData({
     return `${datePart} (${timePart} IST)`;
   }
   return (
-    <div>
-      <Select
-        label="Select Customer"
-        options={options}
-        onChange={handleCustomerChange}
-        value={selectedCustomer}
-      />
-      {selectedCustomerDetails && (
+    <>
+      <div>
         <Select
-          label="Select Order"
-          options={selectedCustomerDetails.orders.map((order: any) => ({
-            label: `${formatDate(order.createdAt)}`,
-            value: order.orderId,
-          }))}
-          onChange={handleOrderChange}
-          value={selectedOrder?.orderId}
+          label="Select Customer"
+          options={options}
+          onChange={handleCustomerChange}
+          value={selectedCustomer}
         />
-      )}
-    </div>
+        {selectedCustomerDetails && (
+          <Select
+            label="Select Order"
+            options={selectedCustomerDetails.orders.map((order: any) => ({
+              label: `${formatDate(order.createdAt)}`,
+              value: order.orderId,
+            }))}
+            onChange={handleOrderChange}
+            value={selectedOrder?.orderId}
+          />
+        )}
+      </div>
+      <div>
+        {selectedCustomerDetails && selectedOrder && (
+          <div>
+            <p>
+              <strong>Order Id:</strong> {selectedOrder.orderId}
+            </p>
+            <p>
+              <strong>Order Name:</strong> {selectedOrder.orderName}
+            </p>
+            <p>
+              <strong>Email:</strong> {selectedCustomerDetails.email}
+            </p>
+            <p>
+              <strong>Phone:</strong> {selectedCustomerDetails.phone}
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
