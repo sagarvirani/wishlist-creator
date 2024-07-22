@@ -98,6 +98,9 @@ export default function SelectCustomerData({
             <p>
               <strong>Phone:</strong> {selectedCustomerDetails.phone}
             </p>
+            <p>
+              <strong>Sales Person:</strong> {selectedOrder.salesPerson}
+            </p>
           </div>
         )}
       </div>

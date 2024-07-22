@@ -39,7 +39,6 @@ const groupCustomerDetails = (draftOrders: any) => {
           lastName: customer.last_name,
           email: customer.email,
           phone: customer.phone,
-          // address: customer.billing_address || 'gggggg667',
           orders: [],
         };
       }
@@ -49,6 +48,8 @@ const groupCustomerDetails = (draftOrders: any) => {
         orderId: order.id,
         orderName: order.name,
         createdAt: order.created_at,
+        billingAddress: order.billing_address || null,
+        salesPerson: order.note,
         lineItems: order.line_items.map((item: any) => {
           const productId = item.product_id.toString();
           const variantId = item.variant_id.toString();

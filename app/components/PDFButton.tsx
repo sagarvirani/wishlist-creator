@@ -34,6 +34,19 @@ export default function PDFButton({
   selectedOrder,
   quantities,
 }: PDFButtonProps) {
+  const formatAddress = (address: {
+    address1: any;
+    address2: any;
+    city: any;
+    province: any;
+    country: any;
+    zip: any;
+  }) => {
+    if (!address) return "Not Provided";
+    const { address1, address2, city, province, country, zip } = address;
+    return `${address1 || ""}${address2 ? `, ${address2}` : ""},\n${city}, ${province}, ${country} - ${zip}`;
+  };
+
   const generatePDF = () => {
     if (!selectedCustomerDetails || !selectedOrder) {
       console.error("Customer details or order is not selected.");
@@ -42,68 +55,87 @@ export default function PDFButton({
 
     const doc = new jsPDF();
 
-    // Add customer details box
-    const customerBoxY = 20;
-    const customerBoxHeight = 30;
-    const customerBoxMargin = 15;
+    // Define colors
+    const borderColor = [0, 0, 0]; // Black color
+    const headerBackgroundColor = [255, 255, 204]; // Light yellow color
+    const bodyBackgroundColorInfoTable = [245, 245, 220]; // Muted Beige color for Customer and Order Information table
+    const bodyBackgroundColorAddressTable = [255, 255, 204]; // Light yellow color for Address table
 
-    // Draw customer details box
-    doc.setFillColor(200, 220, 255); // Light blue color for the box
-    doc.rect(customerBoxMargin, customerBoxY - 5, 180, customerBoxHeight, "F"); // Draw filled rectangle
-    doc.setDrawColor(0, 0, 0); // Black color for the border
-    doc.rect(customerBoxMargin, customerBoxY - 5, 180, customerBoxHeight); // Draw border
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14; // Margin from the edges of the page
+    const usableWidth = pageWidth - 2 * margin; // Usable width accounting for margins
+    const columnWidth = usableWidth / 2; // Width for each column
 
-    // Add customer details text
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0); // Black color for text
+    // Create Customer and Order Information table
+    autoTable(doc, {
+      head: [["Customer Information", "Order Information"]],
+      body: [
+        [
+          `Name: ${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName}\nEmail: ${selectedCustomerDetails.email || 'Not Provided'}\nPhone: ${selectedCustomerDetails.phone}`,
+          `Order Name: ${selectedOrder.orderName}\nOrder ID: ${selectedOrder.orderId}\nOrder Date: ${formatDate(selectedOrder.createdAt)}\nSales Person: ${selectedOrder.salesPerson}`,
+        ],
+      ],
+      startY: 10,
+      theme: "plain",
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        lineWidth: 0.25,
+        lineColor: borderColor as [number, number, number], // Explicitly cast to tuple
+        fillColor: bodyBackgroundColorInfoTable as [number, number, number], // Explicitly cast to tuple
+        textColor: [0, 0, 0], // Black text color
+        overflow: "linebreak", // Ensure text wraps within the cell
+      },
+      headStyles: {
+        fontSize: 12,
+        fontStyle: "bold",
+        lineColor: borderColor as [number, number, number], // Explicitly cast to tuple
+        fillColor: headerBackgroundColor as [number, number, number], // Explicitly cast to tuple
+        textColor: [0, 0, 0], // Black text color
+      },
+      columnStyles: {
+        0: { cellWidth: columnWidth }, // Set width of the first column
+        1: { cellWidth: columnWidth }, // Set width of the second column
+      },
+      margin: { right: margin }, // Add margin on the right
+    });
+
+    // Insert address table after the "Customer and Order Information" table
+    autoTable(doc, {
+      body: [
+        ["Customer Address:", formatAddress(selectedOrder.billingAddress)],
+      ],
+      startY: (doc as any).previousAutoTable.finalY,
+      theme: "plain",
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        lineWidth: 0.25,
+        lineColor: borderColor as [number, number, number], // Explicitly cast to tuple
+        fillColor: bodyBackgroundColorAddressTable as [number, number, number], // Explicitly cast to tuple
+        textColor: [0, 0, 0], // Black text color
+        overflow: "linebreak", // Ensure text wraps within the cell
+      },
+      columnStyles: {
+        0: { cellWidth: columnWidth }, // Fixed width for label column
+        1: { cellWidth: columnWidth }, // Remaining width for address
+      },
+      margin: { right: margin }, // Add margin on the right
+    });
+    const additionalText = `* For all future communications, please provide your "ORDER NAME" and "SALES PERSON'S NAME" to help us provide you with better service.`;
+
+    // Add the additional text below the address table
+    doc.setFontSize(8); // Set the font size
+    doc.setTextColor(0, 0, 0); // Set text color to black
     doc.text(
-      `Customer: ${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName}`,
-      customerBoxMargin + 5,
-      customerBoxY,
-    );
-    doc.text(
-      `Email: ${selectedCustomerDetails.email}`,
-      customerBoxMargin + 5,
-      customerBoxY + 10,
-    );
-    doc.text(
-      `Phone: ${selectedCustomerDetails.phone}`,
-      customerBoxMargin + 5,
-      customerBoxY + 20,
+      additionalText,
+      margin,
+      (doc as any).previousAutoTable.finalY + 3,
     );
 
-    // Add order details box
-    const orderBoxY = customerBoxY + customerBoxHeight + 10;
-    const orderBoxHeight = 30;
-    const orderBoxMargin = 15;
-
-    // Draw order details box
-    doc.setFillColor(255, 230, 200); // Light orange color for the box
-    doc.rect(orderBoxMargin, orderBoxY - 5, 180, orderBoxHeight, "F"); // Draw filled rectangle
-    doc.setDrawColor(0, 0, 0); // Black color for the border
-    doc.rect(orderBoxMargin, orderBoxY - 5, 180, orderBoxHeight); // Draw border
-
-    // Add order details text
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0); // Black color for text
-    doc.text(
-      `Order Name: ${selectedOrder.orderName}`,
-      orderBoxMargin + 5,
-      orderBoxY,
-    );
-    doc.text(
-      `Order ID: ${selectedOrder.orderId}`,
-      orderBoxMargin + 130,
-      orderBoxY,
-    );
-    doc.text(
-      `Order Date: ${formatDate(selectedOrder.createdAt)}`,
-      orderBoxMargin + 5,
-      orderBoxY + 10,
-    );
 
     // Add line items table
-    const tableStartY = orderBoxY + orderBoxHeight + 10;
+    const tableStartY = (doc as any).previousAutoTable.finalY + 13;
     const lineItems = selectedOrder.lineItems.map(
       (item: any, index: number) => [
         item.title,
