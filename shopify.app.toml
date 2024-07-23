@@ -3,7 +3,7 @@
 client_id = "e1483d1e4c943f6cb70d93b042e4865b"
 name = "whishlist-creator"
 handle = "whishlist-creator"
-application_url = "https://unlimited-harbour-compiled-proud.trycloudflare.com"
+application_url = "https://showed-hours-attractive-interaction.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_draft_orders,read_products,write_draft_orders,writ
 
 [auth]
 redirect_urls = [
-  "https://unlimited-harbour-compiled-proud.trycloudflare.com/auth/callback",
-  "https://unlimited-harbour-compiled-proud.trycloudflare.com/auth/shopify/callback",
-  "https://unlimited-harbour-compiled-proud.trycloudflare.com/api/auth/callback"
+  "https://showed-hours-attractive-interaction.trycloudflare.com/auth/callback",
+  "https://showed-hours-attractive-interaction.trycloudflare.com/auth/shopify/callback",
+  "https://showed-hours-attractive-interaction.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

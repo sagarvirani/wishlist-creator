@@ -1,4 +1,3 @@
-import React from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { BlockStack, Button } from "@shopify/polaris";
@@ -25,29 +24,56 @@ function formatDate(dateString: string) {
   const formattedDate = formatter.format(date);
 
   // Separate date and time
-  const [datePart, timePart] = formattedDate.split(", ");
-  return `${datePart} (${timePart} IST)`;
+  const [datePart] = formattedDate.split(", ");
+  return `${datePart}`;
 }
+
+ const formatAddress = (address: {
+   address1: any;
+   address2: any;
+   city: any;
+   province: any;
+   country: any;
+   zip: any;
+ }) => {
+   if (!address) return "Not Provided";
+   const { address1, address2, city, province, country, zip } = address;
+   return `${address1 || ""}${address2 ? `, ${address2}` : ""},\n${city}, ${province}, ${country} - ${zip}`;
+ };
+
+const loadImageAsBase64 = async (url: string): Promise<string> => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+const preloadImages = async (lineItems: any) => {
+  const images = await Promise.all(
+    lineItems.map(async (item: any) => {
+      const img = new Image();
+      img.src = await loadImageAsBase64(item.imageUrl);
+      return {
+        ...item,
+        img,
+      };
+    }),
+  );
+  return images;
+};
 
 export default function PDFButton({
   selectedCustomerDetails,
   selectedOrder,
   quantities,
 }: PDFButtonProps) {
-  const formatAddress = (address: {
-    address1: any;
-    address2: any;
-    city: any;
-    province: any;
-    country: any;
-    zip: any;
-  }) => {
-    if (!address) return "Not Provided";
-    const { address1, address2, city, province, country, zip } = address;
-    return `${address1 || ""}${address2 ? `, ${address2}` : ""},\n${city}, ${province}, ${country} - ${zip}`;
-  };
+ 
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     if (!selectedCustomerDetails || !selectedOrder) {
       console.error("Customer details or order is not selected.");
       return;
@@ -71,7 +97,7 @@ export default function PDFButton({
       head: [["Customer Information", "Order Information"]],
       body: [
         [
-          `Name: ${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName}\nEmail: ${selectedCustomerDetails.email || 'Not Provided'}\nPhone: ${selectedCustomerDetails.phone}`,
+          `Name: ${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName}\nEmail: ${selectedCustomerDetails.email || "Not Provided"}\nPhone: ${selectedCustomerDetails.phone}`,
           `Order Name: ${selectedOrder.orderName}\nOrder ID: ${selectedOrder.orderId}\nOrder Date: ${formatDate(selectedOrder.createdAt)}\nSales Person: ${selectedOrder.salesPerson}`,
         ],
       ],
@@ -122,23 +148,26 @@ export default function PDFButton({
       },
       margin: { right: margin }, // Add margin on the right
     });
+
     const additionalText = `* For all future communications, please provide your "ORDER NAME" and "SALES PERSON'S NAME" to help us provide you with better service.`;
 
     // Add the additional text below the address table
     doc.setFontSize(8); // Set the font size
     doc.setTextColor(0, 0, 0); // Set text color to black
-    doc.text(
-      additionalText,
-      margin,
-      (doc as any).previousAutoTable.finalY + 3,
-    );
+    doc.text(additionalText, margin, (doc as any).previousAutoTable.finalY + 3);
 
+     const lineItemsWithImages = await preloadImages(selectedOrder.lineItems);
 
     // Add line items table
-    const tableStartY = (doc as any).previousAutoTable.finalY + 13;
-    const lineItems = selectedOrder.lineItems.map(
-      (item: any, index: number) => [
-        item.title,
+    const tableStartY = (doc as any).previousAutoTable.finalY + 15;
+    const lineItems = lineItemsWithImages.map((item: any) => {
+      return [
+        {
+          content: "",
+          image: item.img,
+          styles: { halign: "center", cellWidth: 15 },
+        },
+        { content: item.title, styles: { halign: "left" } },
         item.unitPrice,
         quantities[item.productId],
         (item.unitPrice * quantities[item.productId]).toFixed(2),
@@ -154,8 +183,9 @@ export default function PDFButton({
                   100
                 : parseFloat(item.discount))
             ).toFixed(2),
-      ],
-    );
+      ];
+    });
+
     const totalQuantity = Object.values(quantities).reduce(
       (total: number, quantity: number) => total + quantity,
       0,
@@ -177,19 +207,23 @@ export default function PDFButton({
         0,
       )
       .toFixed(2);
+
     // Add summary row
     lineItems.push([
       "Total",
+      "", // Empty cell for Title
       "", // Empty cell for Price/Unit
       totalQuantity,
       "", // Empty cell for Total Price
       "", // Empty cell for Discount
       totalFinalPrice,
     ]);
+    
 
     autoTable(doc, {
       head: [
         [
+          "Image",
           "Product Title",
           "Price/Unit",
           "Quantity",
@@ -203,20 +237,39 @@ export default function PDFButton({
       margin: { top: 85 },
       styles: {
         halign: "right", // All columns right aligned by default
-        fontSize: 10,
+        fontSize: 9,
+        cellPadding: 4,
       },
       headStyles: {
-        halign: "right", // Center align headings
-        fontSize: 12, // Increase font size for headings
+        halign: "center", // Center align headings
+        fontSize: 11, // Increase font size for headings
         fontStyle: "bold", // Make headings bold
-      },
-      columnStyles: {
-        0: { halign: "left" }, // First column (Title) left aligned
+        cellPadding: 2,
       },
       didParseCell: (data) => {
         if (data.row.index === lineItems.length - 1) {
           data.cell.styles.fontStyle = "bold"; // Apply bold font to last row
           data.cell.styles.fillColor = "lightblue";
+        }
+      },
+      didDrawCell: (data) => {
+        if (data.cell.raw && (data.cell.raw as any).image) {
+          if (data.column.index === 0) {
+            const img = (data.cell.raw as any).image;
+            const aspectRatio = img.width / img.height;
+            let imgWidth = data.cell.width * 0.8;
+            let imgHeight = imgWidth / aspectRatio;
+
+            if (imgHeight > data.cell.height * 0.8) {
+              imgHeight = data.cell.height * 0.8;
+              imgWidth = imgHeight * aspectRatio;
+            }
+
+            const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+            const y = data.cell.y + (data.cell.height - imgHeight) / 2;
+
+            doc.addImage(img.src, "PNG", x, y, imgWidth, imgHeight);
+          }
         }
       },
     });
